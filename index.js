@@ -48,7 +48,8 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // mongodb data collections
-    const hotelsCollections = client.db('hotels_DB').collection('rooms')
+    const roomsCollections = client.db('hotels_DB').collection('rooms')
+   
 
     // auth related api
     //   app.post('/jwt', async (req, res) => {
@@ -90,17 +91,38 @@ async function run() {
       if (category && category !=='null') {
         query = { category: category }
       }
-      const result = await hotelsCollections.find(query).toArray()
+      const result = await roomsCollections.find(query).toArray()
       res.send(result)
     })
     // get single data
     app.get('/room/:id', async (req, res) => {
       const id = req.params.id
       const query = { _id: new ObjectId(id) }
-      const result = await hotelsCollections.findOne(query)
+      const result = await roomsCollections.findOne(query)
       res.send(result)
     })
-
+    // get data my lishining
+    app.get('/listing/:email',async(req,res)=>{
+      const email=req.params.email 
+      const query={'host.email': email}
+      const result =await roomsCollections.find(query).toArray()
+      res.send(result)
+    })
+    
+    // insert data in rooms components
+    app.post('/rooms',async(req,res)=>{
+      const info=req.body
+      const result=await roomsCollections.insertOne(info)
+      res.send(result)
+    })
+    // delete elements
+    app.delete('/room/delete/:id',async(req,res)=>{
+      const id=req.params.id 
+      console.log('server is hitting');
+      const query={_id: new ObjectId(id)}
+      const result =await roomsCollections.deleteOne(query)
+      res.send(result)
+    })
     // Send a ping to confirm a successful connection
     await client.db('admin').command({ ping: 1 })
     console.log(
