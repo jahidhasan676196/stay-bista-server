@@ -50,7 +50,7 @@ async function run() {
     // mongodb data collections
     const roomsCollections = client.db('hotels_DB').collection('rooms')
     const usersCollections = client.db('hotels_DB').collection('users')
-   
+
 
     // auth related api
     //   app.post('/jwt', async (req, res) => {
@@ -89,7 +89,7 @@ async function run() {
       const category = req.query.category
       console.log(category);
       let query = {}
-      if (category && category !=='null') {
+      if (category && category !== 'null') {
         query = { category: category }
       }
       const result = await roomsCollections.find(query).toArray()
@@ -103,58 +103,72 @@ async function run() {
       res.send(result)
     })
     // get data my lishining
-    app.get('/listing/:email',async(req,res)=>{
-      const email=req.params.email 
-      const query={'host.email': email}
-      const result =await roomsCollections.find(query).toArray()
+    app.get('/listing/:email', async (req, res) => {
+      const email = req.params.email
+      const query = { 'host.email': email }
+      const result = await roomsCollections.find(query).toArray()
       res.send(result)
     })
     // get a user data
-    app.get('/users/:email',async(req,res)=>{
-      const email=req.params.email
-      const query={email: email}
-      const result =await usersCollections.findOne(query)
+    app.get('/users/:email', async (req, res) => {
+      const email = req.params.email
+      const query = { email: email }
+      const result = await usersCollections.findOne(query)
       res.send(result)
     })
-    
+
     // insert data in rooms components
-    app.post('/rooms',async(req,res)=>{
-      const info=req.body
-      const result=await roomsCollections.insertOne(info)
+    app.post('/rooms', async (req, res) => {
+      const info = req.body
+      const result = await roomsCollections.insertOne(info)
       res.send(result)
     })
     // insert  user information
-    app.post('/user/:email',async(req,res)=>{
-      const email=req.params.email
-      const isUser=await usersCollections.findOne({email:email})
-      if(isUser){
-        return res.send({massage:'user already haven'})
+    app.post('/user/:email', async (req, res) => {
+      const email = req.params.email
+      const isUser = await usersCollections.findOne({ email: email })
+      if (isUser) {
+        return res.send({ massage: 'user already haven' })
       }
-      const info=req.body
-      const result=await usersCollections.insertOne(info)
+      const info = req.body
+      const result = await usersCollections.insertOne(info)
       res.send(result)
     })
-    
+
     // update a elements
-    app.put('/rooms/:id',async(req,res)=>{
-      const info=req.body
-      const id=req.params.id
-      const filter={_id: new ObjectId(id)}
+    app.put('/rooms/:id', async (req, res) => {
+      const info = req.body
+      const id = req.params.id
+      const filter = { _id: new ObjectId(id) }
       const options = { upsert: true };
-      const updateDoc={
-        $set:{
+      const updateDoc = {
+        $set: {
           ...info
         }
       }
-      const result=await roomsCollections.updateOne(filter,updateDoc,options)
+      const result = await roomsCollections.updateOne(filter, updateDoc, options)
+      res.send(result)
+    })
+    // update a role in user
+    app.patch('/user/:email', async (req, res) => {
+      const email = req.params.email
+      const info = req.body
+      const filter = { email: email }
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: {
+          status: info.status
+        },
+      };
+      const result = await usersCollections.updateOne(filter, updateDoc, options)
       res.send(result)
     })
     // delete elements
-    app.delete('/room/delete/:id',async(req,res)=>{
-      const id=req.params.id 
+    app.delete('/room/delete/:id', async (req, res) => {
+      const id = req.params.id
       console.log('server is hitting');
-      const query={_id: new ObjectId(id)}
-      const result =await roomsCollections.deleteOne(query)
+      const query = { _id: new ObjectId(id) }
+      const result = await roomsCollections.deleteOne(query)
       res.send(result)
     })
     // Send a ping to confirm a successful connection
