@@ -109,11 +109,16 @@ async function run() {
       const result = await roomsCollections.find(query).toArray()
       res.send(result)
     })
-    // get a user data
-    app.get('/users/:email', async (req, res) => {
-      const email = req.params.email
-      const query = { email: email }
-      const result = await usersCollections.findOne(query)
+    // get user data
+    app.get('/user/:email',async(req,res)=>{
+      const email=req.params.email 
+      const query ={email: email}
+      const result=await usersCollections.findOne(query)
+      res.send(result)
+    })
+    // get all users information
+    app.get('/users',async(req,res)=>{
+      const result =await usersCollections.find().toArray()
       res.send(result)
     })
 
@@ -161,6 +166,20 @@ async function run() {
         },
       };
       const result = await usersCollections.updateOne(filter, updateDoc, options)
+      res.send(result)
+    })
+    // upadate a user role
+    app.patch('/users/updateRole/:id',async (req,res)=>{
+      const id=req.params.id 
+      const info=req.body
+      const filter={_id: new ObjectId(id)}
+      const options={upsert:true}
+      const updateDoc={
+        $set:{
+          role:info.value
+        }
+      }
+      const result=await usersCollections.updateOne(filter,updateDoc,options)
       res.send(result)
     })
     // delete elements
