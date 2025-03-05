@@ -2,6 +2,7 @@ const express = require('express')
 const app = express()
 require('dotenv').config()
 const cors = require('cors')
+const jwt =require('jsonwebtoken')
 // const cookieParser = require('cookie-parser')
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb')
 // const jwt = require('jsonwebtoken')
@@ -35,6 +36,21 @@ app.use(express.json())
 //     next()
 //   })
 // }
+    // varify token
+    const varifyToken=(req,res,next)=>{
+      const token=req.headers?.authorization.split(' ')[1]
+      if(!token){
+        return res.status(401).send({message:'unahorized access'})
+      }
+      jwt.verify(token,process.env.ACCESS_TOKEN_SECRET,(err,decoded)=>{
+        if(err){
+          return res.status(403).send({message:'forbidden access'})
+        }
+        req.user=decoded
+        next()
+      })
+      // console.log(req.headers.authorization.split(' ')[1])
+    }
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.rzyh2.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`
 const client = new MongoClient(uri, {
@@ -53,6 +69,12 @@ async function run() {
 
 
     // auth related api
+    app.post('/jwt',async(req,res)=>{
+      const user=req.body
+      const token=jwt.sign(user,process.env.ACCESS_TOKEN_SECRET,{expiresIn:'2d'})
+      res.send(token)
+    })
+
     //   app.post('/jwt', async (req, res) => {
     //     const user = req.body
     //     const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
@@ -96,7 +118,7 @@ async function run() {
       res.send(result)
     })
     // get single data
-    app.get('/room/:id', async (req, res) => {
+    app.get('/room/:id',varifyToken, async (req, res) => {
       const id = req.params.id
       const query = { _id: new ObjectId(id) }
       const result = await roomsCollections.findOne(query)
