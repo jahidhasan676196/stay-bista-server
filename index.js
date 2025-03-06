@@ -225,6 +225,21 @@ async function run() {
       const result=await usersCollections.updateOne(filter,updateDoc,options)
       res.send(result)
     })
+    // become a host
+    app.patch('/user/updateRole/:email',async(req,res)=>{
+      const email=req.params.email 
+      const info=req.body
+      console.log('server is hitting');
+      const filter={email:email}
+      const options={upsert:true}
+      const updateDoc={
+        $set:{
+          status:info.status
+        }
+      }
+      const result=await usersCollections.updateOne(filter,updateDoc,options)
+      res.send(result)
+    })
     // delete elements
     app.delete('/room/delete/:id', async (req, res) => {
       const id = req.params.id
