@@ -51,7 +51,7 @@ app.use(express.json())
       })
       // console.log(req.headers.authorization.split(' ')[1])
     }
-
+    
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.rzyh2.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`
 const client = new MongoClient(uri, {
   serverApi: {
@@ -67,6 +67,26 @@ async function run() {
     const roomsCollections = client.db('hotels_DB').collection('rooms')
     const usersCollections = client.db('hotels_DB').collection('users')
 
+    // / varify admin
+    const varifyAdmin=async(req,res,next)=>{
+      const email=req.user.email
+      const result=await usersCollections.findOne({email: email})
+      // console.log('admin name is',isadmin.role);
+      if(!result || !result.role==='admin'){
+        return res.status(401).send({message:'unathorized access'})
+      }
+
+      // console.log(email);
+      next()
+    }
+    const varifyHost=async(req,res,next)=>{
+      const email=req.user.email 
+      const result=await usersCollections.findOne({email:email})
+      if( !result || !result.role==='host'){
+        return res.status(401).send({message:'unahorized access'})
+      }
+      next()
+    }
 
     // auth related api
     app.post('/jwt',async(req,res)=>{
@@ -74,6 +94,7 @@ async function run() {
       const token=jwt.sign(user,process.env.ACCESS_TOKEN_SECRET,{expiresIn:'2d'})
       res.send(token)
     })
+
 
     //   app.post('/jwt', async (req, res) => {
     //     const user = req.body
@@ -109,7 +130,7 @@ async function run() {
     // // get all data
     app.get('/rooms', async (req, res) => {
       const category = req.query.category
-      console.log(category);
+      // console.log(category);
       let query = {}
       if (category && category !== 'null') {
         query = { category: category }
@@ -125,9 +146,9 @@ async function run() {
       res.send(result)
     })
     // get data my lishining
-    app.get('/listing/:email', async (req, res) => {
+    app.get('/listing/:email',varifyToken,varifyHost, async (req, res) => {
       const email = req.params.email
-      const query = { 'host.email': email }
+      let query = { 'host.email': email }
       const result = await roomsCollections.find(query).toArray()
       res.send(result)
     })
@@ -139,13 +160,13 @@ async function run() {
       res.send(result)
     })
     // get all users information
-    app.get('/users',async(req,res)=>{
+    app.get('/users',varifyToken,varifyAdmin,async(req,res)=>{
       const result =await usersCollections.find().toArray()
       res.send(result)
     })
 
     // insert data in rooms components
-    app.post('/rooms', async (req, res) => {
+    app.post('/rooms',varifyToken,varifyHost, async (req, res) => {
       const info = req.body
       const result = await roomsCollections.insertOne(info)
       res.send(result)
@@ -163,7 +184,7 @@ async function run() {
     })
 
     // update a elements
-    app.put('/rooms/:id', async (req, res) => {
+    app.put('/rooms/:id',varifyToken, async (req, res) => {
       const info = req.body
       const id = req.params.id
       const filter = { _id: new ObjectId(id) }
@@ -177,7 +198,7 @@ async function run() {
       res.send(result)
     })
     // update a role in user
-    app.patch('/user/:email', async (req, res) => {
+    app.patch('/user/:email',varifyToken, async (req, res) => {
       const email = req.params.email
       const info = req.body
       const filter = { email: email }
@@ -207,7 +228,7 @@ async function run() {
     // delete elements
     app.delete('/room/delete/:id', async (req, res) => {
       const id = req.params.id
-      console.log('server is hitting');
+      // console.log('server is hitting');
       const query = { _id: new ObjectId(id) }
       const result = await roomsCollections.deleteOne(query)
       res.send(result)
