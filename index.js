@@ -1,6 +1,7 @@
 const express = require('express')
 const app = express()
 require('dotenv').config()
+const stripe = require("stripe")(process.env.STRIPE_PRIVATE_KEY)
 const cors = require('cors')
 const jwt =require('jsonwebtoken')
 // const cookieParser = require('cookie-parser')
@@ -66,6 +67,7 @@ async function run() {
     // mongodb data collections
     const roomsCollections = client.db('hotels_DB').collection('rooms')
     const usersCollections = client.db('hotels_DB').collection('users')
+    const bookingCollections = client.db('hotels_DB').collection('booking')
 
     // / varify admin
     const varifyAdmin=async(req,res,next)=>{
@@ -164,11 +166,22 @@ async function run() {
       const result =await usersCollections.find().toArray()
       res.send(result)
     })
+    // get all my booking data
+    app.get('/mybooking',varifyToken,async(req,res)=>{
+      const result =await bookingCollections.find().toArray()
+      res.send(result)
+    })
 
     // insert data in rooms components
     app.post('/rooms',varifyToken,varifyHost, async (req, res) => {
       const info = req.body
       const result = await roomsCollections.insertOne(info)
+      res.send(result)
+    })
+    // insert my booking data
+    app.post('/my-booking',async(req,res)=>{
+      const info=req.body
+      const result=await bookingCollections.insertOne(info)
       res.send(result)
     })
     // insert  user information
@@ -240,6 +253,20 @@ async function run() {
       const result=await usersCollections.updateOne(filter,updateDoc,options)
       res.send(result)
     })
+    // update room booked 
+    app.patch('/room/update/booked/:id',async(req,res)=>{
+      const id=req.params.id 
+      const filter={_id: new ObjectId(id)}
+      const options={upsert:true}
+      const info=req.body
+      const updateDoc={
+        $set:{
+          ...info
+        }
+      }
+      const result=await roomsCollections.updateOne(filter,updateDoc,options)
+      res.send(result)
+    })
     // delete elements
     app.delete('/room/delete/:id', async (req, res) => {
       const id = req.params.id
@@ -247,6 +274,17 @@ async function run() {
       const query = { _id: new ObjectId(id) }
       const result = await roomsCollections.deleteOne(query)
       res.send(result)
+    })
+    // stripe payments method secret key
+    app.post('/create-payment-intent',async(req,res)=>{
+      const totalPrice=req.body.totalPrice
+      console.log(totalPrice);
+      const amount=parseFloat(totalPrice )*100
+      const paymentIntent=await stripe.paymentIntents.create({
+        amount: amount,  // Amount in cents
+        currency: 'usd',
+    });
+    res.send(paymentIntent)
     })
     // Send a ping to confirm a successful connection
     await client.db('admin').command({ ping: 1 })
