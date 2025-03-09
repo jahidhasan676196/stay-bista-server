@@ -174,11 +174,50 @@ async function run() {
       res.send(result)
     })
     // get all booking data
-    app.get('/booking-room/:email',varifyToken,varifyHost,async(req,res)=>{
-      const email=req.params.email 
-      let query={'host.email':email}
-      const result=await bookingCollections.find(query).toArray()
+    app.get('/booking-room/:email', varifyToken, varifyHost, async (req, res) => {
+      const email = req.params.email
+      let query = { 'host.email': email }
+      const result = await bookingCollections.find(query).toArray()
       res.send(result)
+    })
+    // admin statistics informations
+    app.get('/admin-statistics',varifyToken,varifyAdmin, async (req, res) => {
+      const totalBookings = await bookingCollections.find().toArray()
+      const totalSales = totalBookings.map(booking => booking.totalPrice).reduce((total,price)=>total+price,0)
+      const totalBooking=await bookingCollections.countDocuments()
+      const totalUser=await usersCollections.countDocuments()
+      const totalRooms=await roomsCollections.countDocuments()
+      const result=await roomsCollections.find({},{
+        projection:{
+          totalPrice:1,}
+      })
+      res.send({totalSales,totalBooking,totalUser,totalRooms})
+    })
+    // host-statistics information
+    app.get('/host-statistics/:email',varifyToken,varifyHost,async(req,res)=>{
+      const email=req.params.email 
+      let query={'host.email':email} 
+      const totalSales=await bookingCollections.find(query).toArray()
+      const totalAmount=totalSales.map(totalSale=>totalSale.totalPrice).reduce((total,price)=>total+price,0)
+      const totalBookings=await bookingCollections.countDocuments(query)
+      const totalRooms=await roomsCollections.countDocuments(query)
+      res.send({totalAmount,totalBookings,totalRooms})
+    })
+
+
+    // guest statistics information
+    app.get('/guest-statistics/:email', varifyToken, async (req, res) => {
+      const email = req.params.email
+      let query = { 'guest.email': email }
+      const bookings = await bookingCollections.find(query).toArray()
+      const totalAmount = bookings.map(booking => booking.totalPrice).reduce((total, num) => total + num, 0)
+      const totalBooking = await bookingCollections.countDocuments(query)
+      const options = await bookingCollections.find({ query }, {
+        projection: { totalPrice: 1, price: 1 }
+      }).toArray()
+
+      res.send({ totalAmount, totalBooking, options })
+
     })
 
     // insert data in rooms components
@@ -277,17 +316,17 @@ async function run() {
       res.send(result)
     })
     // update booked status
-    app.patch('/my-booking/:id', varifyToken,async(req,res)=>{
-      const id=req.params.id 
-      const filter={_id: new ObjectId(id)}
-      const options={upsert:true}
-      const updateDoc={
-        $set:{
+    app.patch('/my-booking/:id', varifyToken, async (req, res) => {
+      const id = req.params.id
+      const filter = { _id: new ObjectId(id) }
+      const options = { upsert: true }
+      const updateDoc = {
+        $set: {
 
-          booked:false
+          booked: false
         }
       }
-      const result=await roomsCollections.updateOne(filter,updateDoc,options)
+      const result = await roomsCollections.updateOne(filter, updateDoc, options)
       res.send(result)
     })
     // delete elements
